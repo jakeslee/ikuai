@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/action"
-	"log"
 	"net/http"
 )
 
@@ -52,8 +51,6 @@ func (i *IKuai) Login() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	log.Printf("[INFO] request login %s: %s", i.Username, response.Body())
 
 	for _, cookie := range response.Cookies() {
 		if cookie.Name == "sess_key" {
