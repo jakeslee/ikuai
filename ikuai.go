@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/action"
+	"log"
 	"net/http"
 )
 
 type IKuai struct {
 	client   *resty.Client
+	debug    bool
 	Url      string
 	Username string
 	Password string
@@ -63,16 +65,26 @@ func (i *IKuai) Login() (string, error) {
 }
 
 func (i *IKuai) Run(session string, action *action.Action, result interface{}) (string, error) {
+	url := i.Url + "/Action/call"
+
 	response, err := i.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetCookie(&http.Cookie{Name: "sess_key", Value: session}).
 		SetBody(action).
 		SetResult(result).
-		Post(i.Url + "/Action/call")
+		Post(url)
 
 	if err != nil {
 		return "", err
 	}
 
+	if i.debug {
+		log.Printf("POST %s, request: %v, response: %s", url, action, response.String())
+	}
+
 	return response.String(), nil
+}
+
+func (i *IKuai) Debug() {
+	i.debug = true
 }
