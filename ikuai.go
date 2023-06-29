@@ -43,11 +43,14 @@ func getMD5(password string) string {
 }
 
 func (i *IKuai) Login() (string, error) {
+	var result action.Result
+
 	response, err := i.client.R().
 		SetBody(&LoginRequest{
 			Username: i.Username,
 			Passwd:   getMD5(i.Password),
 		}).
+		SetResult(&result).
 		Post(i.Url + "/Action/login")
 
 	if err != nil {
@@ -61,7 +64,9 @@ func (i *IKuai) Login() (string, error) {
 		}
 	}
 
-	return "", errors.New("login error, no cookies")
+	log.Printf("login error: %s", response.Body())
+
+	return "", errors.New(fmt.Sprintf("login error: %s, no cookies", result.ErrMsg))
 }
 
 func (i *IKuai) Run(session string, action *action.Action, result interface{}) (string, error) {
