@@ -2,6 +2,7 @@ package ikuai
 
 import (
 	"crypto/md5"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/go-resty/resty/v2"
@@ -20,9 +21,15 @@ type IKuai struct {
 	session string
 }
 
-func NewIKuai(url string, username string, password string) *IKuai {
+func NewIKuai(url string, username string, password string, insecureSkipVerify bool) *IKuai {
+	client := resty.New()
+
+	if insecureSkipVerify {
+		client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
 	return &IKuai{
-		client:   resty.New(),
+		client:   client,
 		Url:      url,
 		Username: username,
 		Password: password,
