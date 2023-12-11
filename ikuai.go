@@ -22,7 +22,7 @@ type IKuai struct {
 	session string
 }
 
-func NewIKuai(url string, username string, password string, insecureSkipVerify bool) *IKuai {
+func NewIKuai(url string, username string, password string, insecureSkipVerify, autoLogin bool) *IKuai {
 	client := resty.New()
 
 	if insecureSkipVerify {
@@ -36,30 +36,32 @@ func NewIKuai(url string, username string, password string, insecureSkipVerify b
 		Password: password,
 	}
 
-	client.SetRetryCount(2)
-	client.AddRetryCondition(func(response *resty.Response, err error) bool {
-		body := response.Body()
-		var result action.Result
-		rErr := json.Unmarshal(body, &result)
-		if rErr != nil {
-			log.Printf("Unmarshal error: %v", rErr)
-			return false
-		}
-
-		if result.Result == 10014 {
-			log.Printf("session timeout: try to login")
-			_, err := i.Login()
-			if err != nil {
+	if autoLogin {
+		client.SetRetryCount(2)
+		client.AddRetryCondition(func(response *resty.Response, err error) bool {
+			body := response.Body()
+			var result action.Result
+			rErr := json.Unmarshal(body, &result)
+			if rErr != nil {
+				log.Printf("Unmarshal error: %v", rErr)
 				return false
 			}
 
-			log.Printf("successfully login, re-try to meter states")
+			if result.Result == 10014 {
+				log.Printf("session timeout: try to login")
+				_, err := i.Login()
+				if err != nil {
+					return false
+				}
 
-			return true
-		}
+				log.Printf("successfully login, re-try to meter states")
 
-		return false
-	})
+				return true
+			}
+
+			return false
+		})
+	}
 
 	return i
 }

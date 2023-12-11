@@ -11,7 +11,7 @@ go get -u https://github.com/jakeslee/ikuai
 ### 使用
 
 ```go
-i := NewIKuai("http://10.10.1.253", "test", "test123")
+i := NewIKuai("http://10.10.1.253", "test", "test123", true, false)
 
 login, err := i.Login()
 if err != nil {
