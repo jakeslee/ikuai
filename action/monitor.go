@@ -39,6 +39,7 @@ func NewMonitorLanIpAction() *Action {
 		FuncName: "monitor_lanip",
 		Param: map[string]interface{}{
 			"TYPE": "data,total",
+			"limit": "0,10000",
 		},
 	}
 }
