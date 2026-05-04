@@ -1,7 +1,7 @@
 module github.com/jakeslee/ikuai
 
-go 1.21.3
+go 1.26.2
 
-require github.com/go-resty/resty/v2 v2.7.0
+require github.com/go-resty/resty/v2 v2.17.2
 
-require golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
+require golang.org/x/net v0.53.0 // indirect
