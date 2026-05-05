@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/action"
-	"log"
+	"github.com/sirupsen/logrus"
+
 	"net/http"
 )
 
@@ -43,18 +45,25 @@ func NewIKuai(url string, username string, password string, insecureSkipVerify, 
 			var result action.Result
 			rErr := json.Unmarshal(body, &result)
 			if rErr != nil {
-				log.Printf("Unmarshal error: %v", rErr)
+				logrus.WithFields(logrus.Fields{
+					"result": body,
+				}).WithError(rErr).Error("Unmarshal error")
 				return false
 			}
 
 			if result.Result == 10014 {
-				log.Printf("session timeout: try to login")
+				logrus.WithFields(logrus.Fields{
+					"URL":    response.Request.URL,
+					"result": result,
+				}).Info("session timeout")
 				_, err := i.Login()
 				if err != nil {
 					return false
 				}
 
-				log.Printf("successfully login, re-try to meter states")
+				logrus.WithFields(logrus.Fields{
+					"username": i.Username,
+				}).Info("login successful")
 
 				return true
 			}
@@ -101,7 +110,11 @@ func (i *IKuai) Login() (string, error) {
 		}
 	}
 
-	log.Printf("login error: %s", response.Body())
+	logrus.WithFields(logrus.Fields{
+		"URL":      i.Url + "/Action/login",
+		"username": i.Username,
+		"result":   result,
+	}).Error("failed to log in")
 
 	return "", errors.New(fmt.Sprintf("login error: %s, no cookies", result.ErrMsg))
 }
@@ -121,7 +134,11 @@ func (i *IKuai) Run(session string, action *action.Action, result interface{}) (
 	}
 
 	if i.debug {
-		log.Printf("POST %s, request: %v, response: %s", url, action, response.String())
+		logrus.WithFields(logrus.Fields{
+			"URL":      url,
+			"action":   action,
+			"response": response.String(),
+		}).Debug("POST request")
 	}
 
 	return response.String(), nil

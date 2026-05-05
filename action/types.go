@@ -29,6 +29,10 @@ type Result struct {
 	ErrMsg string `json:"ErrMsg"`
 }
 
+func (r *Result) Ok() bool {
+	return r.ErrMsg == "Success"
+}
+
 type DataResult struct {
 	Total int                      `json:"total"`
 	Data  []map[string]interface{} `json:"data"`
