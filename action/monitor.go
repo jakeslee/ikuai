@@ -44,6 +44,17 @@ func NewMonitorLanIpAction() *Action {
 	}
 }
 
+func NewMonitorLanIPv6Action() *Action {
+	return &Action{
+		Action:   "show",
+		FuncName: "monitor_lanipv6",
+		Param: map[string]interface{}{
+			"TYPE":  "data,total",
+			"limit": "0,10000",
+		},
+	}
+}
+
 type ShowMonitorResult struct {
 	Result
 	Data struct {

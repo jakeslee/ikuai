@@ -51,6 +51,17 @@ func (i *IKuai) ShowMonitorLan() (*action.ShowMonitorResult, error) {
 	return resp, nil
 }
 
+func (i *IKuai) ShowMonitorLanIPv6() (*action.ShowMonitorResult, error) {
+	resp := &action.ShowMonitorResult{}
+
+	_, err := i.Run(i.session, action.NewMonitorLanIPv6Action(), resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
 func (i *IKuai) ShowSysStat() (*action.ShowSysStatResult, error) {
 	resp := &action.ShowSysStatResult{}
 
