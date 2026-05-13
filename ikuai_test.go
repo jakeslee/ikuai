@@ -378,3 +378,23 @@ func TestIKuai_MultipleLogins(t *testing.T) {
 	assert.Equal(t, sessionKey2, session2)
 	assert.Equal(t, 2, loginAttempts)
 }
+
+func TestIKuai_ShowMonitorLan_Response_Invalid_JSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Action/call" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"Result":30000,"ErrMsg":"Success","Data":{"data":timeout,"total":0}}`))
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	ikuai := NewIKuai(server.URL, "admin", "password", false, true)
+	lanResult, err := ikuai.ShowMonitorLan()
+
+	assert.NoError(t, err)
+	assert.True(t, lanResult.Ok())
+	assert.Empty(t, lanResult.Data.Data)
+}

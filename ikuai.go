@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 
+	"net/http"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/action"
 	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
-
-	"net/http"
 )
 
 type IKuai struct {
@@ -40,31 +40,32 @@ func NewIKuai(url string, username string, password string, insecureSkipVerify, 
 		Password: password,
 	}
 
-	if autoLogin {
-		client.SetRetryCount(2)
-		client.JSONUnmarshal = func(b []byte, v interface{}) error {
-			body := string(b)
-			// Handle invalid JSON structure when ikuai returns "data: timeout"
-			results := gjson.GetMany(body, "Data.data", "Data.total")
-			if results[0].Raw == "timeout" {
-				if results[1].Exists() {
-					set, _ := sjson.Set(body, "Data.data", []string{})
-					body = set
-				}
-
-				logrus.WithFields(logrus.Fields{
-					"result":     string(b),
-					"normalized": body,
-				}).Error("ikuai returns invalid JSON: \"data: timeout\"")
+	client.JSONUnmarshal = func(b []byte, v interface{}) error {
+		body := string(b)
+		// Handle invalid JSON structure when ikuai returns "data: timeout"
+		results := gjson.GetMany(body, "Data.data", "Data.total")
+		if results[0].Raw == "timeout" {
+			if results[1].Exists() {
+				set, _ := sjson.Set(body, "Data.data", []string{})
+				body = set
 			}
 
-			return json.Unmarshal([]byte(body), v)
+			logrus.WithFields(logrus.Fields{
+				"result":     string(b),
+				"normalized": body,
+			}).Warn("ikuai returns invalid JSON: \"data: timeout\"")
 		}
+
+		return json.Unmarshal([]byte(body), v)
+	}
+
+	if autoLogin {
+		client.SetRetryCount(2)
 		client.AddRetryCondition(func(response *resty.Response, err error) bool {
 			body := response.Body()
 
 			var result action.Result
-			rErr := json.Unmarshal(body, &result)
+			rErr := client.JSONUnmarshal(body, &result)
 			if rErr != nil {
 				logrus.WithFields(logrus.Fields{
 					"result": string(body),
