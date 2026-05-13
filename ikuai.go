@@ -10,6 +10,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/action"
 	"github.com/sirupsen/logrus"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 
 	"net/http"
 )
@@ -40,15 +42,48 @@ func NewIKuai(url string, username string, password string, insecureSkipVerify, 
 
 	if autoLogin {
 		client.SetRetryCount(2)
+		client.JSONUnmarshal = func(b []byte, v interface{}) error {
+			body := string(b)
+			// Handle invalid JSON structure when ikuai returns "data: timeout"
+			results := gjson.GetMany(body, "Data.data", "Data.total")
+			if results[0].Raw == "timeout" {
+				if results[1].Exists() {
+					set, _ := sjson.Set(body, "Data.data", []string{})
+					body = set
+				}
+
+				logrus.WithFields(logrus.Fields{
+					"result":     string(b),
+					"normalized": body,
+				}).Error("ikuai returns invalid JSON: \"data: timeout\"")
+			}
+
+			return json.Unmarshal([]byte(body), v)
+		}
 		client.AddRetryCondition(func(response *resty.Response, err error) bool {
 			body := response.Body()
+
 			var result action.Result
 			rErr := json.Unmarshal(body, &result)
 			if rErr != nil {
 				logrus.WithFields(logrus.Fields{
-					"result": body,
-				}).WithError(rErr).Error("Unmarshal error")
+					"result": string(body),
+				}).WithError(rErr).Error("unmarshal body error")
 				return false
+			}
+
+			if !result.Ok() {
+				logger := logrus.WithFields(logrus.Fields{
+					"URL":     response.Request.URL,
+					"result":  result.Result,
+					"message": result.ErrMsg,
+				})
+
+				if result.Result != 10014 {
+					logger = logger.WithField("response", string(body))
+				}
+
+				logger.WithError(err).Warn("failed to invoke ikuai")
 			}
 
 			if result.Result == 10014 {
@@ -123,6 +158,8 @@ func (i *IKuai) Run(session string, action *action.Action, result interface{}) (
 	url := i.Url + "/Action/call"
 
 	response, err := i.client.R().
+		SetDebug(i.debug).
+		EnableGenerateCurlOnDebug().
 		SetHeader("Content-Type", "application/json").
 		SetCookie(&http.Cookie{Name: "sess_key", Value: session}).
 		SetBody(action).
@@ -131,14 +168,6 @@ func (i *IKuai) Run(session string, action *action.Action, result interface{}) (
 
 	if err != nil {
 		return "", err
-	}
-
-	if i.debug {
-		logrus.WithFields(logrus.Fields{
-			"URL":      url,
-			"action":   action,
-			"response": response.String(),
-		}).Debug("POST request")
 	}
 
 	return response.String(), nil
