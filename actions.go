@@ -8,7 +8,7 @@ import (
 func (i *IKuai) EditIPGroup(ipGroup action.IPGroup) (*action.Result, error) {
 	resp := &action.Result{}
 
-	_, err := i.Run(i.session, action.NewIPGroupEditAction(ipGroup), resp)
+	_, err := i.Run(action.NewIPGroupEditAction(ipGroup), resp)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func (i *IKuai) EditIPGroup(ipGroup action.IPGroup) (*action.Result, error) {
 func (i *IKuai) ShowIPGroup() (*action.ShowIPGroupResult, error) {
 	resp := &action.ShowIPGroupResult{}
 
-	_, err := i.Run(i.session, action.NewIPGroupShowAction(), resp)
+	_, err := i.Run(action.NewIPGroupShowAction(), resp)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (i *IKuai) ShowIPGroup() (*action.ShowIPGroupResult, error) {
 func (i *IKuai) Switch(id string, state action.SwitchState, fn func(string, action.SwitchState) *action.Action) (*action.Result, error) {
 	resp := &action.Result{}
 
-	_, err := i.Run(i.session, fn(id, state), resp)
+	_, err := i.Run(fn(id, state), resp)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (i *IKuai) Switch(id string, state action.SwitchState, fn func(string, acti
 func (i *IKuai) ShowMonitorLan() (*action.ShowMonitorResult, error) {
 	resp := &action.ShowMonitorResult{}
 
-	_, err := i.Run(i.session, action.NewMonitorLanIpAction(), resp)
+	_, err := i.Run(action.NewMonitorLanIpAction(), resp)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (i *IKuai) ShowMonitorLan() (*action.ShowMonitorResult, error) {
 func (i *IKuai) ShowMonitorLanIPv6() (*action.ShowMonitorResult, error) {
 	resp := &action.ShowMonitorResult{}
 
-	_, err := i.Run(i.session, action.NewMonitorLanIPv6Action(), resp)
+	_, err := i.Run(action.NewMonitorLanIPv6Action(), resp)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (i *IKuai) ShowMonitorLanIPv6() (*action.ShowMonitorResult, error) {
 func (i *IKuai) ShowSysStat() (*action.ShowSysStatResult, error) {
 	resp := &action.ShowSysStatResult{}
 
-	_, err := i.Run(i.session, action.NewShowSysStatAction(), resp)
+	_, err := i.Run(action.NewShowSysStatAction(), resp)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (i *IKuai) ShowSysStat() (*action.ShowSysStatResult, error) {
 func (i *IKuai) ShowMonitorInterface() (*action.ShowMonitorInterfaceResult, error) {
 	resp := &action.ShowMonitorInterfaceResult{}
 
-	_, err := i.Run(i.session, action.NewMonitorInterfaceAction(), resp)
+	_, err := i.Run(action.NewMonitorInterfaceAction(), resp)
 	if err != nil {
 		return nil, err
 	}

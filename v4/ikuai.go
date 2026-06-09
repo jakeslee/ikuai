@@ -1,49 +1,20 @@
-package ikuai
+package v4
 
 import (
 	"github.com/go-resty/resty/v2"
-	"github.com/jakeslee/ikuai/action"
 	"github.com/jakeslee/ikuai/base"
-	"github.com/jakeslee/ikuai/v4"
+	"github.com/jakeslee/ikuai/v4/action"
 	"github.com/sirupsen/logrus"
 )
 
-type IKuai struct {
+type IKuaiV4 struct {
 	*base.IKuaiBase
 }
 
-func NewV4(url string, username string, password string, insecureSkipVerify, autoLogin bool) *v4.IKuaiV4 {
-	i := &v4.IKuaiV4{
-		IKuaiBase: &base.IKuaiBase{
-			Url:      url,
-			Username: username,
-			Password: password,
-		},
-	}
-
-	i.Client = base.CreateHttpClient(insecureSkipVerify, autoLogin, i)
-
-	return i
-}
-
-func NewIKuai(url string, username string, password string, insecureSkipVerify, autoLogin bool) *IKuai {
-	i := &IKuai{
-		IKuaiBase: &base.IKuaiBase{
-			Url:      url,
-			Username: username,
-			Password: password,
-		},
-	}
-
-	i.Client = base.CreateHttpClient(insecureSkipVerify, autoLogin, i)
-
-	return i
-}
-
-func (i *IKuai) RetryHandle(response *resty.Response, err error) bool {
+func (i *IKuaiV4) RetryHandle(response *resty.Response, err error) bool {
 	body := string(response.Body())
 
-	var result action.Result
+	var result action.Status
 	rErr := i.Client.JSONUnmarshal([]byte(body), &result)
 	if rErr != nil {
 		logrus.WithFields(logrus.Fields{
@@ -56,17 +27,17 @@ func (i *IKuai) RetryHandle(response *resty.Response, err error) bool {
 		logger := logrus.WithFields(logrus.Fields{
 			"URL":     response.Request.URL,
 			"result":  result.Result,
-			"message": result.ErrMsg,
+			"message": result.Message,
 		})
 
-		if result.Result != 10014 {
+		if !result.Is(action.SessionTimeout) {
 			logger = logger.WithField("response", body)
 		}
 
 		logger.WithError(err).Warn("failed to invoke ikuai")
 	}
 
-	if result.Result == 10014 {
+	if result.Is(action.SessionTimeout) {
 		logrus.WithFields(logrus.Fields{
 			"URL":    response.Request.URL,
 			"result": result,
