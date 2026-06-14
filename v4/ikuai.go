@@ -1,6 +1,9 @@
 package v4
 
 import (
+	"errors"
+	"net"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/base"
 	"github.com/jakeslee/ikuai/v4/action"
@@ -17,9 +20,19 @@ func (i *IKuaiV4) RetryHandle(response *resty.Response, err error) bool {
 	var result action.Status
 	rErr := i.Client.JSONUnmarshal([]byte(body), &result)
 	if rErr != nil {
+		var nErr net.Error
+		if errors.Is(rErr, base.ErrIKuaiTimeout) || errors.As(err, &nErr) && nErr.Timeout() {
+			logrus.WithFields(logrus.Fields{
+				"method": response.Request.Method,
+				"URL":    response.Request.URL,
+			}).Warn("timeout")
+			return true
+		}
+
 		logrus.WithFields(logrus.Fields{
 			"result": body,
 		}).WithError(rErr).Error("unmarshal body error")
+
 		return false
 	}
 

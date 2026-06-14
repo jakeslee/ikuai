@@ -3,13 +3,14 @@ package base
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/jakeslee/ikuai/action"
 	"github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 )
 
 type IKuaiBase struct {
@@ -44,26 +45,24 @@ func (i *IKuaiBase) Debug() {
 	i.DebugOn = true
 }
 
+func (i *IKuaiBase) SetTimeout(timeout time.Duration) {
+	i.Client.SetTimeout(timeout)
+}
+
 type Retrier interface {
 	RetryHandle(response *resty.Response, err error) bool
 }
+
+var ErrIKuaiTimeout = errors.New("ikuai timeout")
 
 func CreateHttpClient(insecureSkipVerify, autoLogin bool, retrier Retrier) *resty.Client {
 	client := resty.New()
 	client.JSONUnmarshal = func(b []byte, v interface{}) error {
 		body := string(b)
 		// Handle invalid JSON structure when ikuai returns "data: timeout"
-		results := gjson.GetMany(body, "results.data", "results.total")
-		if results[0].Raw == "timeout" {
-			if results[1].Exists() {
-				set, _ := sjson.Set(body, "results.data", []string{})
-				body = set
-			}
-
-			logrus.WithFields(logrus.Fields{
-				"result":     string(b),
-				"normalized": body,
-			}).Warn("ikuai returns invalid JSON: \"data: timeout\"")
+		result := gjson.Get(body, "results.data")
+		if result.Raw == "timeout" {
+			return ErrIKuaiTimeout
 		}
 
 		return json.Unmarshal([]byte(body), v)
@@ -74,7 +73,7 @@ func CreateHttpClient(insecureSkipVerify, autoLogin bool, retrier Retrier) *rest
 	}
 
 	if autoLogin {
-		client.SetRetryCount(2)
+		client.SetRetryCount(3)
 		client.AddRetryCondition(func(response *resty.Response, err error) bool {
 			body := response.Body()
 
